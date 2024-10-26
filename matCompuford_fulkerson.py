@@ -90,20 +90,24 @@ def verificar_conexiones_salientes(matriz):
             nodos_sin_conexion.append(i)
     return nodos_sin_conexion
 
-def crear_matriz(cantidad):
 
+import streamlit as st
+import random
+
+def crear_matriz(cantidad):
     """
-    Genera una matriz de adyacencia usando generación basada en caminos
-    garantizando que cada nodo tenga al menos una conexión saliente
+    Genera una matriz de adyacencia con al menos una conexión saliente por fila, excepto la última.
     """
     matriz = [[0] * cantidad for _ in range(cantidad)]
+    
+    # Generar el camino principal
     camino_principal = generar_camino_principal(cantidad)
-
     for i in range(len(camino_principal)-1):
         nodo_actual = camino_principal[i]
         nodo_siguiente = camino_principal[i+1]
         matriz[nodo_actual][nodo_siguiente] = random.randint(10, 20)
 
+    # Generar un camino alternativo
     if random.random() < 0.7:
         camino_alt = generar_camino_principal(cantidad)
         for i in range(len(camino_alt)-1):
@@ -112,15 +116,23 @@ def crear_matriz(cantidad):
             if matriz[nodo_actual][nodo_siguiente] == 0:
                 matriz[nodo_actual][nodo_siguiente] = random.randint(5, 15)
 
-    aristas_adicionales = random.randint(cantidad//2, cantidad)
+    aristas_adicionales = random.randint(cantidad // 2, cantidad)
     for _ in range(aristas_adicionales):
-        i = random.randint(0, cantidad-2)
-        j = random.randint(i+1, cantidad-1)
+        i = random.randint(0, cantidad - 2)
+        j = random.randint(i + 1, cantidad - 1)
         if matriz[i][j] == 0:
-            if random.random() < 0.3:
-                matriz[i][j] = random.randint(1, 10)
+            matriz[i][j] = random.randint(1, 10)
 
+
+    for i in range(cantidad - 1):
+        if sum(matriz[i]) == 0:
+            posibles_destinos = [j for j in range(cantidad) if j != i]
+            destino = random.choice(posibles_destinos)
+            matriz[i][destino] = random.randint(1, 10)
+    
     return matriz
+
+
 
 
 def validar_matriz_manual(entrada):
@@ -342,11 +354,23 @@ def main():
                     ["Aleatorio", "Manual"]
                 )
 
+
             if metodo == "Aleatorio":
                 if st.sidebar.button("Generar nueva matriz aleatoria"):
-                    st.session_state.matriz = crear_matriz(n)
-                    st.session_state.tamano_matriz = n
-                    st.rerun()
+                    for key in ['matriz', 'matriz_input']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    
+                    nueva_matriz = crear_matriz(n)
+                    
+                    zero_rows = [i for i in range(n-1) if sum(nueva_matriz[i]) == 0]
+                    if zero_rows:
+                        st.error(f"Error: Filas {zero_rows} tienen todos ceros")
+                    else:
+                        st.session_state.matriz = nueva_matriz
+                        st.session_state.tamano_matriz = n
+                        st.rerun()
+
             else:
                 matriz_input = show_matrix_input_section(n)
                 

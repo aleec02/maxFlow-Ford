@@ -172,14 +172,28 @@ def dfs(grafo, fuente, sumidero, parent, visitado):
     return False
 
 
-# Implementación del algoritmo de Ford-Fulkerson
-def ford_fulkerson(grafo, fuente, sumidero):
+def encontrar_camino(grafo_residual, fuente, sumidero, parent):
+    """
+    Reconstruye el camino desde la fuente al sumidero usando el array parent
+    """
+    camino = []
+    v = sumidero
+    while v != fuente:
+        u = parent[v]
+        camino.append(v)
+        v = u
+    camino.append(fuente)
+    return list(reversed(camino))
+
+def ford_fulkerson(grafo, fuente, sumidero, etiquetas):
     n = len(grafo)
     flujo_maximo = 0
-    parent = [-1] * n
     grafo_residual = np.copy(grafo)
+
+    rutas = []
     
     while True:
+        parent = [-1] * n
         visitado = [False] * n
         if not dfs(grafo_residual, fuente, sumidero, parent, visitado):
             break
@@ -191,6 +205,16 @@ def ford_fulkerson(grafo, fuente, sumidero):
             flujo_camino = min(flujo_camino, grafo_residual[u][v])
             v = u
 
+        camino = encontrar_camino(grafo_residual, fuente, sumidero, parent)
+        
+        camino_letras = [etiquetas[i] for i in camino]
+        
+        rutas.append({
+            "camino": camino_letras,
+            "flujo": flujo_camino
+        })
+
+        # actualizar grafo residual
         v = sumidero
         while v != fuente:
             u = parent[v]
@@ -200,7 +224,8 @@ def ford_fulkerson(grafo, fuente, sumidero):
 
         flujo_maximo += flujo_camino
     
-    return flujo_maximo, grafo_residual
+    return flujo_maximo, grafo_residual, rutas
+
 
 # Función para dibujar el grafo
 def crear_grafo_imagen(matriz, etiquetas, flujo=False):
@@ -241,7 +266,6 @@ def create_breadcrumb(current_section):
     st.markdown(f'<div class="wiki-breadcrumb">{breadcrumb}</div>', unsafe_allow_html=True)
 
 def show_matrix_input_section(n):
-    st.markdown('<div class="matrix-input">', unsafe_allow_html=True)
     st.markdown("""
     **Formato de entrada:**
     - Valores separados por espacios
@@ -427,12 +451,19 @@ def main():
                     fuente_idx = etiquetas.index(fuente)
                     sumidero_idx = etiquetas.index(sumidero)
 
-                    flujo_max, grafo_residual = ford_fulkerson(
+                    flujo_max, grafo_residual, rutas = ford_fulkerson(
                         np.copy(st.session_state.matriz),
                         fuente_idx,
-                        sumidero_idx
+                        sumidero_idx,
+                        etiquetas
                     )
 
+                    st.markdown("### Rutas tomadas:")
+                    for i, ruta in enumerate(rutas, 1):
+                        camino_str = " → ".join(ruta["camino"])
+                        st.markdown(f"- **Ruta {i}:** {camino_str} (Flujo: **{ruta['flujo']}**)")
+
+                                    
                     st.success(f"El flujo máximo entre {fuente} y {sumidero} es: {flujo_max}")
 
                     col1, col2 = st.columns(2)

@@ -4,3 +4,6 @@ networkx
 matplotlib
 tabulate
 pandas
+fpdf2
+Pillow 
+Wand

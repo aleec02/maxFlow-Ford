@@ -7,6 +7,124 @@ from tabulate import tabulate
 import string
 import io
 import pandas as pd
+from fpdf import FPDF
+from datetime import datetime
+import tempfile
+from wand.image import Image
+from wand.color import Color
+
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 15)
+        self.cell(0, 10, 'Reporte de Flujo Máximo - Algoritmo Ford-Fulkerson', 0, 1, 'C')
+        self.ln(10)
+    
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Página {self.page_no()}/{{nb}}', 0, 0, 'C')
+
+
+def generar_reporte(matriz, etiquetas, fuente, sumidero, flujo_max, rutas, grafo_original, grafo_residual):
+    pdf = PDF('L')
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    
+    pdf.set_margins(20, 20, 20)
+    
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, f'Fecha y hora: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', 0, 1)
+    pdf.ln(5)
+    
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, 'Parámetros del Problema:', 0, 1)
+    pdf.set_font('Arial', '', 11)
+    pdf.cell(0, 10, f'* Tamaño de la matriz: {len(matriz)}x{len(matriz)}', 0, 1)
+    pdf.cell(0, 10, f'* Nodo fuente: {fuente}', 0, 1)
+    pdf.cell(0, 10, f'* Nodo sumidero: {sumidero}', 0, 1)
+    pdf.ln(5)
+    
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, 'Matriz de Adyacencia:', 0, 1)
+    pdf.set_font('Arial', '', 8)
+    
+    col_width = min(15, (pdf.w - 40) / (len(matriz) + 1))
+    row_height = 7
+    
+    pdf.cell(col_width, row_height, '', 1)
+    for etiqueta in etiquetas:
+        pdf.cell(col_width, row_height, etiqueta, 1)
+    pdf.ln()
+    
+    for i, fila in enumerate(matriz):
+        pdf.cell(col_width, row_height, etiquetas[i], 1)
+        for valor in fila:
+            pdf.cell(col_width, row_height, str(valor), 1)
+        pdf.ln()
+    pdf.ln(10)
+    
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, 'Resultados:', 0, 1)
+    pdf.set_font('Arial', '', 11)
+    pdf.cell(0, 10, f'Flujo máximo: {flujo_max}', 0, 1)
+    
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, 'Rutas tomadas:', 0, 1)
+    pdf.set_font('Arial', '', 11)
+    
+    for i, ruta in enumerate(rutas, 1):
+        camino_str = " -> ".join(ruta["camino"])
+        pdf.cell(0, 10, f'Ruta {i}:', 0, 1)
+        pdf.cell(20, 10, '', 0, 0)
+        pdf.cell(0, 10, f'Camino: {camino_str}', 0, 1)
+        pdf.cell(20, 10, '', 0, 0)
+        pdf.cell(0, 10, f'Flujo: {ruta["flujo"]}', 0, 1)
+    pdf.ln(5)
+    
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp1, \
+         tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp2:
+        grafo_original.seek(0)
+        grafo_residual.seek(0)
+        tmp1.write(grafo_original.read())
+        tmp2.write(grafo_residual.read())
+
+
+        pdf.add_page()
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 10, 'Visualización de Grafos:', 0, 1)
+        
+        pdf.cell(0, 10, 'Red de flujos original:', 0, 1)
+        grafo_original.seek(0)
+        with Image(blob=grafo_original.read()) as img:
+            img.format = 'png'
+            img.background_color = Color('white')
+            img.alpha_channel = 'remove'
+            img_bytes = io.BytesIO(img.make_blob('png'))
+            pdf.image(img_bytes, x=20, w=250)
+
+
+        pdf.add_page()
+        pdf.cell(0, 10, 'Red con flujo máximo:', 0, 1)
+        grafo_residual.seek(0)
+        with Image(blob=grafo_residual.read()) as img:
+            img.format = 'png'
+            img.background_color = Color('white')
+            img.alpha_channel = 'remove'
+            img_bytes = io.BytesIO(img.make_blob('png'))
+            pdf.image(img_bytes, x=20, w=250)
+        
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"FordFulkerson_Resultados_{timestamp}.pdf"
+        
+        pdf.output(filename)
+        return filename
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"FordFulkerson_Resultados_{timestamp}.pdf"
+    
+    pdf.output(filename)
+    return filename
+
 
 st.set_page_config(page_title="Algoritmo de Ford-Fulkerson", layout="wide")
 
@@ -214,7 +332,6 @@ def ford_fulkerson(grafo, fuente, sumidero, etiquetas):
             "flujo": flujo_camino
         })
 
-        # actualizar grafo residual
         v = sumidero
         while v != fuente:
             u = parent[v]
@@ -273,7 +390,7 @@ def crear_grafo_imagen(matriz, etiquetas, flujo=False, rutas=None, grafo_residua
                 })
 
     base_edge_width = 2.0
-    edge_shift = 0.03  # Shift for parallel edges
+    edge_shift = 0.03
 
     nx.draw_networkx_edges(G, pos, edge_color='gray', width=1, alpha=0.3)
 
@@ -312,11 +429,10 @@ def crear_grafo_imagen(matriz, etiquetas, flujo=False, rutas=None, grafo_residua
                          length_includes_head=True,
                          alpha=0.7)
 
-    # Add edge labels
     edge_labels = {}
     for (u, v, d) in G.edges(data=True):
         if (u, v) in edge_paths:
-            # Cree una etiqueta de varias líneas que muestre todos los flujos a través de un borde
+            # lista de etiqueta de varias líneas que muestre todos los flujos a través de una arista
             flows_text = []
             total_flow = 0
             for path_info in edge_paths[(u, v)]:
@@ -329,7 +445,6 @@ def crear_grafo_imagen(matriz, etiquetas, flujo=False, rutas=None, grafo_residua
 
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 
-    # Create legend
     legend_elements = [
         plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#2ECC71',
                   markersize=15, label='Nodo Fuente'),
@@ -359,8 +474,6 @@ def crear_grafo_imagen(matriz, etiquetas, flujo=False, rutas=None, grafo_residua
     plt.close(fig)
     buf.seek(0)
     return buf
-
-
 
 
 
@@ -528,7 +641,6 @@ def main():
                     else:
                         st.error(error)
 
-            # Display matrix if it exists
             if st.session_state.matriz is not None:
                 n = len(st.session_state.matriz)
                 etiquetas = list(string.ascii_uppercase[:n])
@@ -567,6 +679,13 @@ def main():
                         sumidero_idx,
                         etiquetas
                     )
+                    st.session_state.last_results = {
+                        'flujo_max': flujo_max,
+                        'rutas': rutas,
+                        'grafo_original': crear_grafo_imagen(st.session_state.matriz, etiquetas, False),
+                        'grafo_residual': crear_grafo_imagen(st.session_state.matriz, etiquetas, True, 
+                                                        rutas=rutas, grafo_residual=grafo_residual)
+                    }
 
                     st.success(f"Flujo máximo de {fuente} a {sumidero}: {flujo_max}")
                     
@@ -589,7 +708,27 @@ def main():
                                             rutas=rutas, grafo_residual=grafo_residual)
                         st.image(buf, use_column_width=True)
 
-
+                if 'last_results' in st.session_state:
+                    if st.button("Exportar Resultados"):
+                        filename = generar_reporte(
+                            st.session_state.matriz,
+                            etiquetas,
+                            fuente,
+                            sumidero,
+                            st.session_state.last_results['flujo_max'],
+                            st.session_state.last_results['rutas'],
+                            st.session_state.last_results['grafo_original'],
+                            st.session_state.last_results['grafo_residual']
+                        )
+                        with open(filename, 'rb') as pdf_file:
+                            PDFbyte = pdf_file.read()
+                        
+                        st.download_button(
+                            label="Descargar Reporte PDF",
+                            data=PDFbyte,
+                            file_name=filename,
+                            mime='application/pdf'
+                        )
 
 
     else:

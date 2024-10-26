@@ -22,7 +22,7 @@ class PDF(FPDF):
     def footer(self):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Página {self.page_no()}/{{nb}}', 0, 0, 'C')
+        self.cell(0, 10, f'{self.page_no()}/{{nb}}', 0, 0, 'C')
 
 
 def generar_reporte(matriz, etiquetas, fuente, sumidero, flujo_max, rutas, grafo_original, grafo_residual):
@@ -81,50 +81,24 @@ def generar_reporte(matriz, etiquetas, fuente, sumidero, flujo_max, rutas, grafo
         pdf.cell(0, 10, f'Flujo: {ruta["flujo"]}', 0, 1)
     pdf.ln(5)
     
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp1, \
-         tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp2:
-        grafo_original.seek(0)
-        grafo_residual.seek(0)
-        tmp1.write(grafo_original.read())
-        tmp2.write(grafo_residual.read())
-
-
-        pdf.add_page()
-        pdf.set_font('Arial', 'B', 12)
-        pdf.cell(0, 10, 'Visualización de Grafos:', 0, 1)
-        
-        pdf.cell(0, 10, 'Red de flujos original:', 0, 1)
-        grafo_original.seek(0)
-        with Image(blob=grafo_original.read()) as img:
-            img.format = 'png'
-            img.background_color = Color('white')
-            img.alpha_channel = 'remove'
-            img_bytes = io.BytesIO(img.make_blob('png'))
-            pdf.image(img_bytes, x=20, w=250)
-
-
-        pdf.add_page()
-        pdf.cell(0, 10, 'Red con flujo máximo:', 0, 1)
-        grafo_residual.seek(0)
-        with Image(blob=grafo_residual.read()) as img:
-            img.format = 'png'
-            img.background_color = Color('white')
-            img.alpha_channel = 'remove'
-            img_bytes = io.BytesIO(img.make_blob('png'))
-            pdf.image(img_bytes, x=20, w=250)
-        
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"FordFulkerson_Resultados_{timestamp}.pdf"
-        
-        pdf.output(filename)
-        return filename
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, 'Visualización de Grafos:', 0, 1)
+    
+    pdf.cell(0, 10, 'Red de flujos original:', 0, 1)
+    grafo_original.seek(0)
+    pdf.image(grafo_original, x=20, w=250)
+    
+    pdf.add_page()
+    pdf.cell(0, 10, 'Red con flujo máximo:', 0, 1)
+    grafo_residual.seek(0)
+    pdf.image(grafo_residual, x=20, w=250)
     
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = f"FordFulkerson_Resultados_{timestamp}.pdf"
     
     pdf.output(filename)
     return filename
-
 
 st.set_page_config(page_title="Algoritmo de Ford-Fulkerson", layout="wide")
 

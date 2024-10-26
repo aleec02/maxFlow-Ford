@@ -239,15 +239,43 @@ def crear_grafo_imagen(matriz, etiquetas, flujo=False):
             if matriz[i][j] > 0:
                 G.add_edge(etiquetas[i], etiquetas[j], capacity=matriz[i][j])
 
+    color_map = []
+    for i in range(len(etiquetas)):
+        if i == 0:
+            color_map.append('#2ECC71')
+        elif i == len(etiquetas)-1:
+            color_map.append('#E74C3C')
+        else:
+            color_map.append('#3498DB')
+
     fig, ax = plt.subplots(figsize=(8, 8))
     pos = nx.spring_layout(G)
-    nx.draw(G, pos, with_labels=True, node_color='lightblue', 
-            node_size=1500, font_size=10, font_weight='bold', ax=ax)
+    
+    nx.draw(G, pos, 
+            node_color=color_map,
+            node_size=1500, 
+            font_size=10, 
+            font_weight='bold',
+            with_labels=True,
+            ax=ax)
 
     labels = nx.get_edge_attributes(G, 'capacity')
     nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
 
+    legend_elements = [
+        plt.Line2D([0], [0], marker='o', color='w', 
+                  markerfacecolor='#2ECC71', markersize=15, label='Nodo Fuente'),
+        plt.Line2D([0], [0], marker='o', color='w', 
+                  markerfacecolor='#E74C3C', markersize=15, label='Nodo Sumidero'),
+        plt.Line2D([0], [0], marker='o', color='w', 
+                  markerfacecolor='#3498DB', markersize=15, label='Nodos Intermedios')
+    ]
+    ax.legend(handles=legend_elements, loc='upper left', 
+             bbox_to_anchor=(1, 1))
+
     plt.title("Red de flujos" if not flujo else "Flujo máximo")
+    
+    plt.tight_layout()
     
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight')

@@ -228,7 +228,7 @@ def ford_fulkerson(grafo, fuente, sumidero, etiquetas):
 
 
 # Función para dibujar el grafo
-def crear_grafo_imagen(matriz, etiquetas, flujo=False):
+def crear_grafo_imagen(matriz, etiquetas, flujo=False, rutas=None, grafo_residual=None):
     G = nx.DiGraph()
     
     for i in range(len(etiquetas)):
@@ -237,44 +237,121 @@ def crear_grafo_imagen(matriz, etiquetas, flujo=False):
     for i in range(len(matriz)):
         for j in range(len(matriz[i])):
             if matriz[i][j] > 0:
-                G.add_edge(etiquetas[i], etiquetas[j], capacity=matriz[i][j])
+                if grafo_residual is not None:
+                    flow = matriz[i][j] - grafo_residual[i][j]
+                    G.add_edge(etiquetas[i], etiquetas[j], capacity=matriz[i][j], flow=flow)
+                else:
+                    G.add_edge(etiquetas[i], etiquetas[j], capacity=matriz[i][j], flow=0)
 
-    color_map = []
-    for i in range(len(etiquetas)):
-        if i == 0:
-            color_map.append('#2ECC71')
-        elif i == len(etiquetas)-1:
-            color_map.append('#E74C3C')
-        else:
-            color_map.append('#3498DB')
-
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
     pos = nx.spring_layout(G)
     
-    nx.draw(G, pos, 
-            node_color=color_map,
-            node_size=1500, 
-            font_size=10, 
-            font_weight='bold',
-            with_labels=True,
-            ax=ax)
+    color_map = ['#2ECC71' if i == 0 else '#E74C3C' if i == len(etiquetas)-1 
+                 else '#3498DB' for i in range(len(etiquetas))]
+    
+    nx.draw_networkx_nodes(G, pos,
+                          node_color=color_map,
+                          node_size=1500)
+    
+    nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
 
-    labels = nx.get_edge_attributes(G, 'capacity')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+    path_colors = ['#FF69B4', '#FFD700', '#32CD32', '#00c5cd', '#FF7F50']
 
+    edge_paths = {}
+    if rutas:
+        for idx, ruta in enumerate(rutas):
+            path = ruta["camino"]
+            path_edges = list(zip(path[:-1], path[1:]))
+            
+            for edge in path_edges:
+                if edge not in edge_paths:
+                    edge_paths[edge] = []
+                edge_paths[edge].append({
+                    'color': path_colors[idx % len(path_colors)],
+                    'flow': ruta["flujo"],
+                    'path_num': idx + 1
+                })
+
+    base_edge_width = 2.0
+    edge_shift = 0.03  # Shift for parallel edges
+
+    nx.draw_networkx_edges(G, pos, edge_color='gray', width=1, alpha=0.3)
+
+    if edge_paths:
+        for edge, paths in edge_paths.items():
+            num_paths = len(paths)
+            
+            if num_paths > 1:
+                shifts = np.linspace(-edge_shift * (num_paths-1)/2, 
+                                   edge_shift * (num_paths-1)/2, 
+                                   num_paths)
+            else:
+                shifts = [0]
+
+            for path_idx, path_info in enumerate(paths):
+                node1, node2 = edge
+                pos1, pos2 = pos[node1], pos[node2]
+                
+                shift = shifts[path_idx]
+                dx = pos2[0] - pos1[0]
+                dy = pos2[1] - pos1[1]
+                angle = np.arctan2(dy, dx) + np.pi/2
+                
+                shift_x = shift * np.cos(angle)
+                shift_y = shift * np.sin(angle)
+                
+                new_pos1 = (pos1[0] + shift_x, pos1[1] + shift_y)
+                new_pos2 = (pos2[0] + shift_x, pos2[1] + shift_y)
+                
+                plt.arrow(new_pos1[0], new_pos1[1],
+                         new_pos2[0] - new_pos1[0],
+                         new_pos2[1] - new_pos1[1],
+                         color=path_info['color'],
+                         width=0.002,
+                         head_width=0.03,
+                         length_includes_head=True,
+                         alpha=0.7)
+
+    # Add edge labels
+    edge_labels = {}
+    for (u, v, d) in G.edges(data=True):
+        if (u, v) in edge_paths:
+            # Cree una etiqueta de varias líneas que muestre todos los flujos a través de un borde
+            flows_text = []
+            total_flow = 0
+            for path_info in edge_paths[(u, v)]:
+                flows_text.append(f"R{path_info['path_num']}: {path_info['flow']}")
+                total_flow += path_info['flow']
+            flows_str = '\n'.join(flows_text)
+            edge_labels[(u, v)] = f"{total_flow}/{d['capacity']}\n{flows_str}"
+        else:
+            edge_labels[(u, v)] = f"0/{d['capacity']}"
+
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+
+    # Create legend
     legend_elements = [
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  markerfacecolor='#2ECC71', markersize=15, label='Nodo Fuente'),
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  markerfacecolor='#E74C3C', markersize=15, label='Nodo Sumidero'),
-        plt.Line2D([0], [0], marker='o', color='w', 
-                  markerfacecolor='#3498DB', markersize=15, label='Nodos Intermedios')
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#2ECC71',
+                  markersize=15, label='Nodo Fuente'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#E74C3C',
+                  markersize=15, label='Nodo Sumidero'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#3498DB',
+                  markersize=15, label='Nodos Intermedios')
     ]
-    ax.legend(handles=legend_elements, loc='upper left', 
-             bbox_to_anchor=(1, 1))
+
+    if rutas:
+        for idx, ruta in enumerate(rutas):
+            legend_elements.append(
+                plt.Line2D([0], [0], color=path_colors[idx % len(path_colors)],
+                          label=f'Ruta {idx+1} (Flujo: {ruta["flujo"]})',
+                          linewidth=2)
+            )
+
+    ax.legend(handles=legend_elements, 
+             loc='center left', 
+             bbox_to_anchor=(1, 0.5))
 
     plt.title("Red de flujos" if not flujo else "Flujo máximo")
-    
     plt.tight_layout()
     
     buf = io.BytesIO()
@@ -282,6 +359,10 @@ def crear_grafo_imagen(matriz, etiquetas, flujo=False):
     plt.close(fig)
     buf.seek(0)
     return buf
+
+
+
+
 
 def create_breadcrumb(current_section):
     sections = {
@@ -475,6 +556,7 @@ def main():
                         index=len(etiquetas)-1
                     )
 
+
                 if st.button("Calcular flujo máximo"):
                     fuente_idx = etiquetas.index(fuente)
                     sumidero_idx = etiquetas.index(sumidero)
@@ -486,13 +568,13 @@ def main():
                         etiquetas
                     )
 
+                    st.success(f"Flujo máximo de {fuente} a {sumidero}: {flujo_max}")
+                    
+                    # Mostrar las rutas
                     st.markdown("### Rutas tomadas:")
                     for i, ruta in enumerate(rutas, 1):
                         camino_str = " → ".join(ruta["camino"])
                         st.markdown(f"- **Ruta {i}:** {camino_str} (Flujo: **{ruta['flujo']}**)")
-
-                                    
-                    st.success(f"El flujo máximo entre {fuente} y {sumidero} es: {flujo_max}")
 
                     col1, col2 = st.columns(2)
                     
@@ -503,8 +585,12 @@ def main():
                     
                     with col2:
                         st.subheader("Red con flujo máximo")
-                        buf = crear_grafo_imagen(grafo_residual, etiquetas, True)
+                        buf = crear_grafo_imagen(st.session_state.matriz, etiquetas, True, 
+                                            rutas=rutas, grafo_residual=grafo_residual)
                         st.image(buf, use_column_width=True)
+
+
+
 
     else:
         create_breadcrumb("equipo")

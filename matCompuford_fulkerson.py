@@ -237,7 +237,7 @@ def create_breadcrumb(current_section):
         "programa": "Ejecutar Programa",
         "equipo": "Equipo"
     }
-    breadcrumb = f"Inicio > {sections.get(current_section, current_section)}"
+    breadcrumb = f"Programa > {sections.get(current_section, current_section)}"
     st.markdown(f'<div class="wiki-breadcrumb">{breadcrumb}</div>', unsafe_allow_html=True)
 
 def show_matrix_input_section(n):
@@ -266,7 +266,7 @@ def show_section(title, content):
 
 def main():
     st.sidebar.markdown('<div class="wiki-index">', unsafe_allow_html=True)
-    st.sidebar.title("Contenido")
+    st.sidebar.title("Menú")
     
     section = st.sidebar.radio("", 
         ["📚 Inicio", 
@@ -284,45 +284,55 @@ def main():
         create_breadcrumb("inicio")
         st.title("Algoritmo de Ford-Fulkerson")
         
-        show_section("Enunciado del Problema", """
-        <div style='background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 10px 0;'>
-        Dado n ∈ [8, 16] ingresado por el usuario, el programa debe generar aleatoriamente una matriz n × n 
+        st.markdown("""
+        ### Enunciado del Problema
+
+        Dado $n \in [8, 16]$ ingresado por el usuario, el programa debe generar aleatoriamente una matriz $n × n$
         (con elementos positivos) o solicitar el ingreso de cada elemento de la matriz (según decisión del usuario). Además, debe mostrar la red de flujos óptima asociada a esta matriz y calcular el flujo máximo que existe entre dos vértices seleccionados por el usuario. Todo el proceso, desde la generación de la matriz hasta el cálculo del flujo máximo, se debe mostrar paso a paso, proporcionando una visualización clara y detallada del funcionamiento interno del algoritmo.
-        </div>
         """)
+
+
         
         show_section("Descripción General", """
         El algoritmo de Ford-Fulkerson es un método para encontrar el flujo máximo en una red de flujo.
         Este proyecto implementa una versión interactiva del algoritmo con visualización de grafos, cumpliendo con los requerimientos del enunciado del problema.
         """)
         
-        st.markdown('<div class="wiki-math">', unsafe_allow_html=True)
-        st.latex(r'''
-        \text{Problema: } \max \sum_{(s,v) \in E} f(s,v)
-        ''')
-        st.markdown('</div>', unsafe_allow_html=True)
-
     elif "📖 Fundamento Teórico" in section:
         create_breadcrumb("teoria")
         
         with st.expander("1. Conceptos Básicos", expanded=True):
             st.markdown("""
-            • Red de Flujo: Grafo dirigido con capacidades
-            • Flujo: Función que asigna valores a las aristas
+            - **Red de Flujo:** Grafo dirigido con capacidades
+            - **Capacidad ($c$):** Es una propiedad de cada arista del grafo que define el límite máximo de flujo que puede pasar por esa arista.
+            - **Flujo:** Cantidad que se mueve a través de una red o grafo.  Asigna valores a las aristas del grafo. Representa la cantidad de fujo que pasa por una arista en un tiempo dado.
+            - **Nodos:** Incluye al menos un nodo fuente $(s)$ y un nodo sumidero $(t)$.
+            - **Flujo máximo($|f|$):** Se refiere a la cantidad máxima total de flujo que puede ser transportada desde el nodo fuente hasta el nodo sumidero.
             """)
             st.latex(r"0 \leq f(u,v) \leq c(u,v)")
 
-        with st.expander("2. Restricciones", expanded=True):
-            st.markdown("### Restricciones del Flujo")
+        with st.expander("2. Condiciones", expanded=True):
+            st.markdown("### Condiciones del Flujo")
             st.latex(r"""
             \begin{aligned}
             & \text{Capacidad: } & 0 \leq f(u,v) \leq c(u,v) \\
             & \text{Conservación: } & \sum_{w \in V} f(v,w) = \sum_{u \in V} f(u,v)
             \end{aligned}
             """)
+            st.markdown("**Capacidad:** El flujo en la arista $(u,v)$ debe ser mayor o igual que creo y el flujo en la arisa (u,v) debe ser menos o igual que la capacidad.")
+            st.markdown("**Conservación:** El flujo que entra a un nodo debe ser igual al flujo que sale de él, salvo en el caso de los nodos fuente y sumidero.")
 
-        with st.expander("3. Algoritmo", expanded=True):
-            st.markdown("### Proceso Iterativo")
+
+        with st.expander("4. Representación", expanded=True):
+            st.markdown("### Flujo máximo")
+
+            st.latex(r"""
+            \text{Flujo Máximo: } \quad f_{\text{max}} = \sum_{v \in S} f(s,v)
+            """)
+            st.markdown("donde $S$ es el conjunto de nodos alcanzables desde la fuente en el flujo final.")
+
+        with st.expander("3. Algoritmo Ford-Fulkerson", expanded=True):
+            st.markdown("### Proceso Iterativo; pseudocodigo")
             st.code("""
             while existe_camino_aumentante(grafo, fuente, sumidero):
                 encontrar_camino_minimo()
@@ -331,7 +341,7 @@ def main():
 
     elif "⚡ Ejecutar Programa" in section:
             create_breadcrumb("programa")
-            st.title("Ejecutar Algoritmo")
+            st.title("Ejecutar programa")
             
             with st.sidebar:
                 st.markdown("### Configuración")
@@ -447,14 +457,14 @@ def main():
             st.markdown("""
             ### Desarrollador 1
             - Estudiante: Alexia Conza
-            - Rol: Frontend
+            - Rol: Frontend e Implementación del algoritmos.
             """)
         
         with col2:
             st.markdown("""
             ### Desarrollador 2
             - Estudiante: Andrés Coca
-            - Rol: Implementación del algoritmo
+            - Rol: Implementación del algoritmos.
             """)
 
 if __name__ == "__main__":

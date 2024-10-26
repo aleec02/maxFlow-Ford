@@ -9,9 +9,6 @@ import io
 import pandas as pd
 from fpdf import FPDF
 from datetime import datetime
-import tempfile
-from wand.image import Image
-from wand.color import Color
 
 class PDF(FPDF):
     def header(self):

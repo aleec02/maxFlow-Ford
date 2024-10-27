@@ -653,16 +653,16 @@ def main():
                     st.session_state.last_results = {
                         'flujo_max': flujo_max,
                         'rutas': rutas,
-                        'grafo_original': crear_grafo_imagen(st.session_state.matriz, etiquetas, False),
-                        'grafo_residual': crear_grafo_imagen(st.session_state.matriz, etiquetas, True, 
-                                                        rutas=rutas, grafo_residual=grafo_residual)
+                        'grafo_residual': grafo_residual,
+                        'fuente': fuente,
+                        'sumidero': sumidero
                     }
 
-                    st.success(f"Flujo máximo de {fuente} a {sumidero}: {flujo_max}")
+                if 'last_results' in st.session_state:
+                    st.success(f"Flujo máximo de {st.session_state.last_results['fuente']} a {st.session_state.last_results['sumidero']}: {st.session_state.last_results['flujo_max']}")
                     
-                    # Mostrar las rutas
                     st.markdown("### Rutas tomadas:")
-                    for i, ruta in enumerate(rutas, 1):
+                    for i, ruta in enumerate(st.session_state.last_results['rutas'], 1):
                         camino_str = " → ".join(ruta["camino"])
                         st.markdown(f"- **Ruta {i}:** {camino_str} (Flujo: **{ruta['flujo']}**)")
 
@@ -676,20 +676,22 @@ def main():
                     with col2:
                         st.subheader("Red con flujo máximo")
                         buf = crear_grafo_imagen(st.session_state.matriz, etiquetas, True, 
-                                            rutas=rutas, grafo_residual=grafo_residual)
+                                               rutas=st.session_state.last_results['rutas'], 
+                                               grafo_residual=st.session_state.last_results['grafo_residual'])
                         st.image(buf, use_column_width=True)
 
-                if 'last_results' in st.session_state:
                     if st.button("Exportar Resultados"):
                         filename = generar_reporte(
                             st.session_state.matriz,
                             etiquetas,
-                            fuente,
-                            sumidero,
+                            st.session_state.last_results['fuente'],
+                            st.session_state.last_results['sumidero'],
                             st.session_state.last_results['flujo_max'],
                             st.session_state.last_results['rutas'],
-                            st.session_state.last_results['grafo_original'],
-                            st.session_state.last_results['grafo_residual']
+                            crear_grafo_imagen(st.session_state.matriz, etiquetas, False),
+                            crear_grafo_imagen(st.session_state.matriz, etiquetas, True, 
+                                            rutas=st.session_state.last_results['rutas'], 
+                                            grafo_residual=st.session_state.last_results['grafo_residual'])
                         )
                         with open(filename, 'rb') as pdf_file:
                             PDFbyte = pdf_file.read()

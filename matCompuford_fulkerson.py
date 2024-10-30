@@ -180,8 +180,6 @@ def verificar_conexiones_salientes(matriz):
     return nodos_sin_conexion
 
 
-import streamlit as st
-import random
 
 def crear_matriz(cantidad):
     """
@@ -259,6 +257,8 @@ def dfs(grafo, fuente, sumidero, parent, visitado):
             if dfs(grafo, v, sumidero, parent, visitado):
                 return True
     return False
+
+
 
 
 def encontrar_camino(grafo_residual, fuente, sumidero, parent):
@@ -581,14 +581,6 @@ def main():
             \text{Flujo Máximo: } \quad f_{\text{max}} = \sum_{v \in S} f(s,v)
             """)
             st.markdown("donde $S$ es el conjunto de nodos alcanzables desde la fuente en el flujo final.")
-
-        with st.expander("3. Algoritmo Ford-Fulkerson", expanded=True):
-            st.markdown("### Proceso Iterativo; pseudocodigo")
-            st.code("""
-            while existe_camino_aumentante(grafo, fuente, sumidero):
-                encontrar_camino_minimo()
-                actualizar_flujos()
-            """)
 
     elif "⚡ Ejecutar Programa" in section:
             create_breadcrumb("programa")

@@ -481,6 +481,40 @@ def show_section(title, content):
                 unsafe_allow_html=True)
 
 
+
+def show_editable_matrix(matriz, etiquetas):
+
+    df = pd.DataFrame(
+        matriz,
+        columns=etiquetas,
+        index=etiquetas
+    )
+    
+    edited_df = st.data_editor(
+        df,
+        key="matrix_editor",
+        use_container_width=True,
+        hide_index=False,
+        column_config={
+            col: st.column_config.NumberColumn(
+                col,
+                min_value=0,
+                max_value=999,
+                step=1,
+                format="%d"
+            ) for col in etiquetas
+        },
+        disabled=False
+    )
+    
+    edited_matrix = edited_df.to_numpy()
+    
+    if not np.array_equal(matriz, edited_matrix):
+        return edited_matrix
+    return matriz
+
+
+
 def main():
     st.sidebar.markdown('<div class="wiki-index">', unsafe_allow_html=True)
     st.sidebar.title("Menú")
@@ -597,6 +631,24 @@ def main():
                         st.session_state.matriz = nueva_matriz
                         st.session_state.tamano_matriz = n
                         st.rerun()
+
+                if st.session_state.matriz is not None:
+                    n = len(st.session_state.matriz)
+                    etiquetas = list(string.ascii_uppercase[:n])
+                    
+                    st.subheader("Matriz de adyacencia")
+                    st.markdown("""
+                    💡 **Tip**: Puedes editar los valores de la matriz directamente haciendo clic en las celdas.
+                    Los cambios se guardarán automáticamente.
+                    """)
+                    
+                    edited_matrix = show_editable_matrix(st.session_state.matriz, etiquetas)
+                    
+                    if not np.array_equal(st.session_state.matriz, edited_matrix):
+                        st.session_state.matriz = edited_matrix
+                        st.success("Matriz actualizada correctamente")
+
+
 
             else:
                 matriz_input = show_matrix_input_section(n)

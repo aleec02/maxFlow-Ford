@@ -752,22 +752,15 @@ def main():
         create_breadcrumb("equipo")
         st.title("Equipo de Desarrollo")
         
-        col1, col2 = st.columns(2)
+        col1 = st.columns(1)
         
-        with col1:
+        with col1[0]:
             st.markdown("""
-            ### Desarrollador 1
+            ### Desarrollador
             - Estudiante: Alexia Conza
-            - Rol: Frontend e Implementación del algoritmos.
+            - Rol: Frontend, Implementación del algoritmos, deployment, etc.
             """)
         
-        with col2:
-            st.markdown("""
-            ### Desarrollador 2
-            - Estudiante: Andrés Coca
-            - Rol: Implementación del algoritmos.
-            """)
-
 if __name__ == "__main__":
     main()
 
